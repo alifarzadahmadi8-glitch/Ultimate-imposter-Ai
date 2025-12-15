@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Imposter | Social Deduction Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a2a, #1a1a4a, #2d2d5a);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 255, 157, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 184, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 65, 108, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .screen {
+            display: none;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 30px;
+            background: rgba(16, 20, 40, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .screen.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00ff9d;
+            font-size: 2.8rem;
+            font-weight: 800;
+            text-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
+        }
+
+        h2 {
+            color: #00ff9d;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stats {
+            display: flex;
+            gap: 25px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ff9d;
+            display: block;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .game-modes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .mode-card {
+            background: linear-gradient(145deg, rgba(30, 35, 60, 0.9), rgba(20, 25, 50, 0.9));
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ff9d;
+            box-shadow: 0 10px 25px rgba(0, 255, 157, 0.2);
+        }
+
+        .mode-card.active {
+            border-color: #00ff9d;
+            background: linear-gradient(145deg, rgba(0, 255, 157, 0.2), rgba(0, 184, 255, 0.2));
+            box-shadow: 0 15px 35px rgba(0, 255, 157, 0.3);
+        }
+
+        .mode-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #00ff9d;
+        }
+
+        .mode-desc {
+            color: #aaa;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .category-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .category-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .category-item:hover {
+            background: rgba(0, 255, 157, 0.1);
+            border-color: #00ff9d;
+            transform: translateY(-3px);
+        }
+
+        .category-item.active {
+            background: rgba(0, 255, 157, 0.2);
+            border-color: #00ff9d;
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.2);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-width: 180px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #00ff9d, #00b8ff);
+            color: #000;
+            box-shadow: 0 8px 20px rgba(0, 255, 157, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+            box-shadow: 0 8px 20px rgba(255, 65, 108, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(0, 255, 157, 0.4);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            min-width: auto;
+            font-size: 0.9rem;
+        }
+
+        .reveal-content {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .player-title {
+            font-size: 2rem;
+            color: #00ff9d;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 25px auto;
+            animation: pulse 2s infinite;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .crewmate {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            box-shadow: 0 0 30px rgba(33, 150, 243, 0.5);
+            border: 2px solid rgba(33, 150, 243, 0.8);
+        }
+
+        .imposter {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            box-shadow: 0 0 30px rgba(255, 65, 108, 0.5);
+            border: 2px solid rgba(255, 65, 108, 0.8);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .image-container {
+            width: 250px;
+            height: 250px;
+            margin: 30px auto;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            border: 3px solid #00ff9d;
+            background: linear-gradient(45deg, #1a1a4a, #2d2d5a);
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .image-container:hover img {
+            transform: scale(1.1);
+        }
+
+        .no-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #888;
+            height: 100%;
+            width: 100%;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .word-display {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 40px 0;
+            color: white;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
+            padding: 25px;
+            background: linear-gradient(45deg, rgba(0, 255, 157, 0.2), rgba(0, 184, 255, 0.2));
+            border-radius: 20px;
+            border: 3px solid #00ff9d;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-word;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+        }
+
+        .hint-box {
+            font-size: 1.1rem;
+            color: white;
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border-left: 5px solid #00ff9d;
+            text-align: left;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .hint-box h3 {
+            color: #00ff9d;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .handover-screen {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .handover-text {
+            font-size: 3rem;
+            margin-bottom: 40px;
+            color: #00ff9d;
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(0, 255, 157, 0.5); }
+            to { text-shadow: 0 0 30px rgba(0, 255, 157, 0.8); }
+        }
+
+        .countdown {
+            font-size: 6rem;
+            color: #ff6b6b;
+            margin: 40px 0;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            animation: countdownPulse 1s infinite alternate;
+        }
+
+        @keyframes countdownPulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        .player-list {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .player-item {
+            text-align: center;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .player-item.active {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .player-item.current .player-avatar {
+            box-shadow: 0 0 30px rgba(255, 65, 108, 0.8);
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            animation: currentPlayer 1.5s infinite alternate;
+        }
+
+        @keyframes currentPlayer {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        .player-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00ff9d, #00b8ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 10px;
+            box-shadow: 0 8px 25px rgba(0, 255, 157, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .timer-display {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            color: #00ff9d;
+            border: 2px solid rgba(0, 255, 157, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .game-score {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            color: #00ff9d;
+            border: 2px solid rgba(0, 255, 157, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 2px solid #00ff9d;
+        }
+
+        .instructions h3 {
+            color: #00ff9d;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .instructions ul {
+            padding-left: 25px;
+            margin: 15px 0;
+        }
+
+        .instructions li {
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+
+        .imposter-warning {
+            background: linear-gradient(145deg, rgba(255, 65, 108, 0.2), rgba(255, 75, 43, 0.2));
+            border: 2px solid #ff416c;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            animation: shake 0.8s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .setup-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-group h3 {
+            color: #00ff9d;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .control-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ff9d;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .adjust-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .adjust-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(45deg, #00ff9d, #00b8ff);
+            color: #000;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .adjust-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.4);
+        }
+
+        .adjust-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .limit-indicator {
+            font-size: 0.9rem;
+            color: #aaa;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .error-message {
+            color: #ff416c;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @media (max-width: 768px) {
+            .screen {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .handover-text {
+                font-size: 2.2rem;
+            }
+            
+            .countdown {
+                font-size: 4rem;
+            }
+            
+            .word-display {
+                font-size: 2rem;
+                padding: 20px;
+            }
+            
+            .image-container {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .game-modes {
+                grid-template-columns: 1fr;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                min-width: auto;
+            }
+            
+            .control-row {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .adjust-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Game Timer -->
+    <div class="timer-display" id="timerDisplay">Time: 00:00</div>
+    
+    <!-- Game Score -->
+    <div class="game-score" id="gameScore">Score: 0</div>
+
+    <!-- Main Menu -->
+    <div id="menu" class="screen active">
+        <h1>WORD IMPOSTER</h1>
+        <p style="text-align: center; color: #aaa; margin-bottom: 30px; font-size: 1.1rem;">
+            The Social Deduction Word Game
+        </p>
+        
+        <div class="game-header">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="totalGames">0</span>
+                    <span class="stat-label">Games Played</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="winRate">0%</span>
+                    <span class="stat-label">Win Rate</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="bestScore">0</span>
+                    <span class="stat-label">Best Score</span>
+                </div>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="showScreen('setup')">New Game</button>
+                <button class="btn btn-secondary" onclick="showTutorial()">Tutorial</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>HOW TO PLAY</h3>
+            <ul>
+                <li>Crewmates get a secret word to describe</li>
+                <li>Imposters get NO word and must bluff</li>
+                <li>Describe without saying the actual word</li>
+                <li>Vote out imposters after discussion</li>
+            </ul>
+        </div>
+
+        <div class="game-modes">
+            <div class="mode-card active" onclick="selectMode('classic')">
+                <div class="mode-title">Classic</div>
+                <div class="mode-desc">Traditional gameplay with balanced rules</div>
+            </div>
+            <div class="mode-card" onclick="selectMode('timed')">
+                <div class="mode-title">Timed</div>
+                <div class="mode-desc">30-second turns for fast-paced action</div>
+            </div>
+            <div class="mode-card" onclick="selectMode('hardcore')">
+                <div class="mode-title">Hardcore</div>
+                <div class="mode-desc">No hints for imposters - ultimate challenge</div>
+            </div>
+            <div class="mode-card" onclick="selectMode('chaos')">
+                <div class="mode-title">Chaos</div>
+                <div class="mode-desc">Random rules and twists every round</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="setup" class="screen">
+        <h1>GAME SETUP</h1>
+        
+        <div class="setup-controls">
+            <div class="control-group">
+                <h3>PLAYER SETTINGS</h3>
+                <div class="control-row">
+                    <div class="control-label">Total Players</div>
+                    <div class="adjust-buttons">
+                        <button class="adjust-btn" onclick="adjustPlayers(-1)">-</button>
+                        <div class="control-value" id="playersCount">6</div>
+                        <button class="adjust-btn" onclick="adjustPlayers(1)">+</button>
+                    </div>
+                </div>
+                <div class="limit-indicator">Minimum: 4 | Maximum: 20</div>
+            </div>
+            
+            <div class="control-group">
+                <h3>IMPOSTER SETTINGS</h3>
+                <div class="control-row">
+                    <div class="control-label">Number of Imposters</div>
+                    <div class="adjust-buttons">
+                        <button class="adjust-btn" onclick="adjustImposters(-1)">-</button>
+                        <div class="control-value" id="impostersCount">2</div>
+                        <button class="adjust-btn" onclick="adjustImposters(1)">+</button>
+                    </div>
+                </div>
+                <div class="limit-indicator">Minimum: 1 | Maximum: 3</div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-row">
+                    <div class="control-label">Crewmates</div>
+                    <div class="control-value" id="crewmatesCount">4</div>
+                </div>
+            </div>
+            
+            <div id="setupError" class="error-message"></div>
+        </div>
+
+        <div class="category-section">
+            <h2>SELECT CATEGORY</h2>
+            <div class="category-grid" id="categoryGrid">
+                <!-- Categories will be populated here -->
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-primary" onclick="startGame()">START GAME</button>
+            <button class="btn btn-secondary" onclick="showScreen('menu')">BACK</button>
+        </div>
+    </div>
+
+    <!-- Handover Screen -->
+    <div id="handover" class="screen">
+        <div class="handover-screen">
+            <h2>PASS THE DEVICE</h2>
+            <div class="handover-text" id="handoverText">Pass to Player 1</div>
+            <div class="countdown" id="countdown">5</div>
+            
+            <div class="player-list" id="playerList">
+                <!-- Player avatars will be generated here -->
+            </div>
+            
+            <div class="instructions">
+                <h3>INSTRUCTIONS</h3>
+                <p>When you see your word, <strong>DO NOT say it out loud!</strong><br>
+                Describe it creatively without using the actual word.</p>
+                <p><em>Current mode: <span id="currentMode">Classic</span></em></p>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="showReveal()">SHOW MY WORD</button>
+                <button class="btn btn-secondary" onclick="resetGame()">RESET GAME</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reveal Screen -->
+    <div id="reveal" class="screen">
+        <div class="reveal-content">
+            <div class="player-title" id="playerTitle">PLAYER 1</div>
+            
+            <div class="role-badge crewmate" id="roleBadge">CREWMATE</div>
+            
+            <div class="image-container">
+                <div id="noImage" class="no-image" style="display: none;">
+                    <div>No Image</div>
+                </div>
+                <img id="wordImage" alt="" style="display: none;">
+            </div>
+            
+            <div class="word-display" id="wordDisplay">WORD HERE</div>
+            
+            <div class="hint-box">
+                <h3>YOUR MISSION</h3>
+                <div id="hintText">Do NOT say the word out loud! Describe it creatively.</div>
+                <div id="imposterWarning" class="imposter-warning" style="display: none;">
+                    <h3>IMPOSTER ALERT</h3>
+                    <div>You are the IMPOSTER! You have NO word. Act natural and try to figure out what others are describing.</div>
+                </div>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="nextPlayer()">NEXT PLAYER</button>
+                <button class="btn btn-secondary" onclick="resetGame()">RESET GAME</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div class="screen" id="tutorial" style="display: none;">
+        <div class="reveal-content">
+            <h2>HOW TO PLAY</h2>
+            
+            <div class="instructions">
+                <h3>OBJECTIVE</h3>
+                <p>Crewmates must identify and vote out all Imposters. Imposters must blend in and avoid detection.</p>
+                
+                <h3>GAME FLOW</h3>
+                <ol style="padding-left: 25px; margin: 15px 0;">
+                    <li>Setup: Choose players, category, and game mode</li>
+                    <li>Reveal: Each player secretly sees their word and role</li>
+                    <li>Discussion: Players describe their words without saying them</li>
+                    <li>Voting: Vote for who you think is an Imposter</li>
+                    <li>Resolution: Reveal roles and continue until game ends</li>
+                </ol>
+                
+                <h3>ROLES</h3>
+                <ul style="padding-left: 25px; margin: 15px 0;">
+                    <li>Crewmate: Has a secret word. Must describe it without saying it.</li>
+                    <li>Imposter: Has NO word. Must bluff and blend in.</li>
+                </ul>
+                
+                <h3>GAME MODES</h3>
+                <ul style="padding-left: 25px; margin: 15px 0;">
+                    <li>Classic: Normal gameplay</li>
+                    <li>Timed: 30-second turns for fast gameplay</li>
+                    <li>Hardcore: Imposters get zero information</li>
+                    <li>Chaos: Random rules change every round</li>
+                </ul>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="showScreen('menu')">BACK TO MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Game state
+            let totalPlayers = 6;
+            let impostersCount = 2;
+            let roles = [];
+            let currentWord = "";
+            let currentWordIndex = 0;
+            let currentPlayer = 1;
+            let gameMode = "classic";
+            let countdownInterval;
+            let gameStartTime = 0;
+            let timerInterval;
+            let gameScore = 0;
+            let totalGames = 0;
+            let gamesWon = 0;
+            let bestScore = 0;
+            let selectedCategory = "Football Players";
+            let isBuiltInCategory = true;
+            
+            // Built-in categories
+            const builtInCategories = {
+                "Football Players": {
+                    words: [
+                        "Lionel Messi", "Cristiano Ronaldo", "Neymar Jr", "Kylian Mbappe", "Erling Haaland",
+                        "Kevin De Bruyne", "Mohamed Salah", "Luka Modric", "Karim Benzema", "Robert Lewandowski",
+                        "Harry Kane", "Jude Bellingham", "Vinicius Junior", "Rodri", "Bernardo Silva",
+                        "Antoine Griezmann", "Paulo Dybala", "Son Heung-min", "Sadio Mane", "Riyad Mahrez",
+                        "Virgil van Dijk", "Trent Alexander-Arnold", "Phil Foden", "Bukayo Saka", "Marcus Rashford",
+                        "Bruno Fernandes", "Casemiro", "Pedri", "Gavi", "Ansu Fati",
+                        "Joao Felix", "Federico Valverde", "Dusan Vlahovic", "Victor Osimhen", "Khvicha Kvaratskhelia",
+                        "Jamal Musiala", "Florian Wirtz", "Alphonso Davies", "Achraf Hakimi",
+                        "Ederson", "Alisson Becker", "Thibaut Courtois", "Manuel Neuer", "Jan Oblak",
+                        "Gianluigi Donnarumma", "Mike Maignan", "David de Gea", "Emiliano Martinez", "Jordan Pickford"
+                    ],
+                    images: Array(50).fill('').map((_, i) => 
+                        `https://images.unsplash.com/photo-1551958219-acbc608c6377?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=${i}`
+                    )
+                },
+
+                "Football Clubs": {
+                    words: [
+                        "Real Madrid", "FC Barcelona", "Manchester United", "Manchester City", "Liverpool FC",
+                        "Arsenal FC", "Chelsea FC", "Bayern Munich", "Paris Saint-Germain", "Juventus",
+                        "AC Milan", "Inter Milan", "Tottenham Hotspur", "Atletico Madrid", "Borussia Dortmund",
+                        "Ajax Amsterdam", "Benfica", "Porto", "Celtic FC", "Rangers FC",
+                        "Napoli", "Roma", "Lazio", "Fiorentina", "Sevilla",
+                        "Valencia", "Villarreal", "Athletic Bilbao", "Real Sociedad", "Real Betis",
+                        "Leicester City", "West Ham United", "Newcastle United", "Aston Villa", "Everton",
+                        "Bayer Leverkusen", "RB Leipzig", "Eintracht Frankfurt", "Borussia Monchengladbach", "Wolfsburg",
+                        "Lyon", "Marseille", "Monaco", "Lille", "Nice",
+                        "Galatasaray", "Fenerbahce", "Besiktas", "Al Hilal", "Al Nassr"
+                    ],
+                    images: Array(50).fill('').map((_, i) => 
+                        `https://images.unsplash.com/photo-1511204579483-e5c2b1d69acd?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=${i}`
+                    )
+                },
+
+                "Clash Royale Cards": {
+                    words: [
+                        "Knight", "Archers", "Goblins", "Giant", "PEKKA",
+                        "Wizard", "Musketeer", "Valkyrie", "Hog Rider", "Balloon",
+                        "Baby Dragon", "Mega Knight", "Electro Wizard", "Princess", "Ice Spirit",
+                        "Fire Spirit", "Heal Spirit", "Elixir Golem", "Battle Healer", "Royal Giant",
+                        "Elite Barbarians", "Royal Recruits", "Three Musketeers", "Dark Prince", "Prince",
+                        "Bandit", "Royal Ghost", "Magic Archer", "Lumberjack", "Inferno Dragon",
+                        "Sparky", "Golem", "Lava Hound", "Night Witch", "Mother Witch",
+                        "Fisherman", "Cannon Cart", "Flying Machine", "Wall Breakers", "Bomber",
+                        "Ice Wizard", "Electro Dragon", "Hunter", "Executioner", "Tornado",
+                        "Rocket", "Fireball", "Lightning", "Freeze", "Poison"
+                    ],
+                    images: Array(50).fill('').map((_, i) => 
+                        `https://images.unsplash.com/photo-1574267432553-4b4628081c31?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=${i}`
+                    )
+                },
+
+                "World Cities": {
+                    words: [
+                        "New York", "Tokyo", "London", "Paris", "Dubai",
+                        "Singapore", "Bangkok", "Hong Kong", "Barcelona", "Rome",
+                        "Istanbul", "Moscow", "Sydney", "Toronto", "Los Angeles",
+                        "Chicago", "Miami", "Las Vegas", "San Francisco", "Seattle",
+                        "Berlin", "Amsterdam", "Vienna", "Prague", "Budapest",
+                        "Athens", "Lisbon", "Madrid", "Milan", "Venice",
+                        "Rio de Janeiro", "São Paulo", "Buenos Aires", "Mexico City", "Lima",
+                        "Cairo", "Marrakesh", "Cape Town", "Nairobi", "Mumbai",
+                        "Delhi", "Shanghai", "Beijing", "Seoul", "Osaka",
+                        "Bali", "Phuket", "Hanoi", "Ho Chi Minh City", "Manila"
+                    ],
+                    images: Array(50).fill('').map((_, i) => 
+                        `https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=${i}`
+                    )
+                },
+
+                "Movies & TV Shows": {
+                    words: [
+                        "Harry Potter", "Star Wars", "Marvel", "DC Comics", "The Matrix",
+                        "Lord of the Rings", "Game of Thrones", "Breaking Bad", "Stranger Things", "Friends",
+                        "The Office", "Rick and Morty", "The Simpsons", "South Park", "Family Guy",
+                        "Avatar", "Titanic", "Jurassic Park", "The Godfather", "Pulp Fiction",
+                        "Inception", "Interstellar", "The Dark Knight", "Forrest Gump", "Fight Club",
+                        "The Avengers", "Spider-Man", "Batman", "Superman", "Wonder Woman",
+                        "James Bond", "Mission Impossible", "Fast and Furious", "John Wick", "Terminator",
+                        "Toy Story", "Finding Nemo", "The Lion King", "Frozen", "Shrek",
+                        "Doctor Who", "Sherlock", "Money Heist", "The Crown", "The Witcher",
+                        "Naruto", "Dragon Ball", "One Piece", "Attack on Titan", "Demon Slayer"
+                    ],
+                    images: Array(50).fill('').map((_, i) => 
+                        `https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=${i}`
+                    )
+                }
+            };
+            
+            // DOM Elements
+            const categoryGrid = document.getElementById("categoryGrid");
+            const playersCount = document.getElementById("playersCount");
+            const impostersCount = document.getElementById("impostersCount");
+            const crewmatesCount = document.getElementById("crewmatesCount");
+            const setupError = document.getElementById("setupError");
+            const handoverText = document.getElementById("handoverText");
+            const playerTitle = document.getElementById("playerTitle");
+            const roleBadge = document.getElementById("roleBadge");
+            const wordDisplay = document.getElementById("wordDisplay");
+            const wordImage = document.getElementById("wordImage");
+            const noImage = document.getElementById("noImage");
+            const hintText = document.getElementById("hintText");
+            const imposterWarning = document.getElementById("imposterWarning");
+            const countdownDisplay = document.getElementById("countdown");
+            const playerList = document.getElementById("playerList");
+            const timerDisplay = document.getElementById("timerDisplay");
+            const gameScoreDisplay = document.getElementById("gameScore");
+            const totalGamesDisplay = document.getElementById("totalGames");
+            const winRateDisplay = document.getElementById("winRate");
+            const bestScoreDisplay = document.getElementById("bestScore");
+            const currentMode = document.getElementById("currentMode");
+
+            // Initialize game
+            function initializeGame() {
+                loadStats();
+                populateCategoryGrid();
+                updatePlayerCounts();
+                
+                // Select first category by default
+                selectCategory("Football Players");
+                selectMode("classic");
+            }
+
+            // Load game statistics
+            function loadStats() {
+                const stats = JSON.parse(localStorage.getItem('wordImposterStats')) || {
+                    totalGames: 0,
+                    gamesWon: 0,
+                    bestScore: 0,
+                    totalScore: 0
+                };
+                
+                totalGames = stats.totalGames;
+                gamesWon = stats.gamesWon;
+                bestScore = stats.bestScore;
+                gameScore = stats.totalScore;
+                
+                totalGamesDisplay.textContent = totalGames;
+                winRateDisplay.textContent = totalGames > 0 ? Math.round((gamesWon / totalGames) * 100) + '%' : '0%';
+                bestScoreDisplay.textContent = bestScore;
+                gameScoreDisplay.textContent = `Score: ${gameScore}`;
+            }
+
+            // Save game statistics
+            function saveStats() {
+                const stats = {
+                    totalGames,
+                    gamesWon,
+                    bestScore,
+                    totalScore: gameScore
+                };
+                localStorage.setItem('wordImposterStats', JSON.stringify(stats));
+            }
+
+            // Populate category grid
+            function populateCategoryGrid() {
+                categoryGrid.innerHTML = '';
+                
+                Object.keys(builtInCategories).forEach(categoryName => {
+                    const categoryDiv = document.createElement("div");
+                    categoryDiv.className = "category-item";
+                    categoryDiv.innerHTML = `
+                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${categoryName}</div>
+                        <div style="font-size: 0.9rem; color: #aaa;">${builtInCategories[categoryName].words.length} words</div>
+                    `;
+                    categoryDiv.onclick = () => selectCategory(categoryName);
+                    categoryGrid.appendChild(categoryDiv);
+                });
+            }
+
+            // Select a category
+            function selectCategory(categoryName) {
+                selectedCategory = categoryName;
+                isBuiltInCategory = true;
+                
+                // Update UI
+                document.querySelectorAll('.category-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Highlight selected category
+                const items = document.querySelectorAll('.category-item');
+                items.forEach(item => {
+                    if (item.textContent.includes(categoryName)) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+
+            // Select game mode
+            window.selectMode = function(mode) {
+                gameMode = mode;
+                currentMode.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+                
+                // Update UI
+                document.querySelectorAll('.mode-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                
+                event.currentTarget.classList.add('active');
+            };
+
+            // Adjust number of players
+            window.adjustPlayers = function(change) {
+                const newValue = totalPlayers + change;
+                
+                // Validate limits
+                if (newValue < 4 || newValue > 20) {
+                    showError("Players must be between 4 and 20");
+                    return;
+                }
+                
+                totalPlayers = newValue;
+                
+                // Check if imposters need adjustment
+                if (impostersCount >= totalPlayers) {
+                    impostersCount = Math.max(1, totalPlayers - 1);
+                    if (impostersCount > 3) impostersCount = 3;
+                    showError("Imposters adjusted to fit player count");
+                }
+                
+                updatePlayerCounts();
+                clearError();
+            };
+
+            // Adjust number of imposters
+            window.adjustImposters = function(change) {
+                const newValue = impostersCount + change;
+                
+                // Validate limits
+                if (newValue < 1) {
+                    showError("Must have at least 1 imposter");
+                    return;
+                }
+                
+                if (newValue > 3) {
+                    showError("Maximum 3 imposters allowed");
+                    return;
+                }
+                
+                if (newValue >= totalPlayers) {
+                    showError("Imposters must be less than total players");
+                    return;
+                }
+                
+                impostersCount = newValue;
+                updatePlayerCounts();
+                clearError();
+            };
+
+            // Update player counts display
+            function updatePlayerCounts() {
+                playersCount.textContent = totalPlayers;
+                impostersCount.textContent = impostersCount;
+                crewmatesCount.textContent = totalPlayers - impostersCount;
+                
+                // Update button states
+                updateButtonStates();
+            }
+
+            // Update button enabled/disabled states
+            function updateButtonStates() {
+                // Get all adjust buttons
+                const playerMinus = document.querySelectorAll('.adjust-btn')[0];
+                const playerPlus = document.querySelectorAll('.adjust-btn')[1];
+                const imposterMinus = document.querySelectorAll('.adjust-btn')[2];
+                const imposterPlus = document.querySelectorAll('.adjust-btn')[3];
+                
+                // Update player buttons
+                playerMinus.disabled = totalPlayers <= 4;
+                playerPlus.disabled = totalPlayers >= 20;
+                
+                // Update imposter buttons
+                imposterMinus.disabled = impostersCount <= 1;
+                imposterPlus.disabled = impostersCount >= 3 || impostersCount >= totalPlayers - 1;
+            }
+
+            // Show error message
+            function showError(message) {
+                setupError.textContent = message;
+                setupError.classList.add('show');
+                
+                // Auto-hide error after 3 seconds
+                setTimeout(clearError, 3000);
+            }
+
+            // Clear error message
+            function clearError() {
+                setupError.classList.remove('show');
+            }
+
+            // SCREEN MANAGEMENT
+            window.showScreen = function(screenId) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(screenId).classList.add('active');
+                
+                if (screenId === 'handover') {
+                    updatePlayerList();
+                }
+                
+                if (screenId === 'setup') {
+                    updateButtonStates();
+                }
+            };
+
+            // Show tutorial
+            window.showTutorial = function() {
+                showScreen('tutorial');
+            };
+
+            // Update player list display
+            function updatePlayerList() {
+                playerList.innerHTML = '';
+                for (let i = 1; i <= totalPlayers; i++) {
+                    const playerDiv = document.createElement("div");
+                    playerDiv.className = "player-item" + (i === currentPlayer ? " current" : "") + (i <= currentPlayer ? " active" : "");
+                    playerDiv.innerHTML = `
+                        <div class="player-avatar">${i}</div>
+                        <div>Player ${i}</div>
+                    `;
+                    playerList.appendChild(playerDiv);
+                }
+            }
+
+            // START GAME
+            window.startGame = function() {
+                if (!selectedCategory) {
+                    showError("Please select a category!");
+                    return;
+                }
+                
+                const category = builtInCategories[selectedCategory];
+                
+                if (!category || !category.words || category.words.length < 5) {
+                    showError("Selected category doesn't have enough words!");
+                    return;
+                }
+                
+                // Validate imposters
+                if (impostersCount >= totalPlayers) {
+                    showError("Imposters must be less than total players!");
+                    return;
+                }
+                
+                if (impostersCount < 1 || impostersCount > 3) {
+                    showError("Imposters must be between 1 and 3!");
+                    return;
+                }
+                
+                // Select random real word
+                currentWordIndex = Math.floor(Math.random() * category.words.length);
+                currentWord = category.words[currentWordIndex];
+                
+                // Assign roles
+                roles = Array(totalPlayers).fill("Crewmate");
+                let imposterIndices = [];
+                
+                for (let i = 0; i < impostersCount; i++) {
+                    let index;
+                    do {
+                        index = Math.floor(Math.random() * totalPlayers);
+                    } while (imposterIndices.includes(index));
+                    imposterIndices.push(index);
+                    roles[index] = "Imposter";
+                }
+                
+                currentPlayer = 1;
+                gameStartTime = Date.now();
+                startTimer();
+                showScreen("handover");
+                updateHandoverText();
+                startCountdown();
+                updatePlayerList();
+                
+                // Update game stats
+                totalGames++;
+                totalGamesDisplay.textContent = totalGames;
+                saveStats();
+            };
+
+            // Start game timer
+            function startTimer() {
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    const elapsed = Date.now() - gameStartTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    timerDisplay.textContent = `Time: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            // Update handover text
+            function updateHandoverText() {
+                handoverText.textContent = `PASS TO PLAYER ${currentPlayer}`;
+            }
+
+            // Countdown functionality
+            function startCountdown() {
+                let count = 5;
+                countdownDisplay.textContent = count;
+                countdownDisplay.style.color = '#00ff9d';
+                
+                clearInterval(countdownInterval);
+                countdownInterval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownDisplay.textContent = count;
+                        if (count <= 3) {
+                            countdownDisplay.style.color = '#ff6b6b';
+                        }
+                    } else {
+                        clearInterval(countdownInterval);
+                        countdownDisplay.textContent = "GO!";
+                        countdownDisplay.style.color = '#00ff9d';
+                        setTimeout(() => {
+                            showReveal();
+                        }, 1000);
+                    }
+                }, 1000);
+            }
+
+            // SHOW REVEAL SCREEN
+            window.showReveal = function() {
+                clearInterval(countdownInterval);
+                const role = roles[currentPlayer - 1];
+                const category = builtInCategories[selectedCategory];
+                const isImposter = role === "Imposter";
+                
+                // Update UI
+                playerTitle.textContent = `PLAYER ${currentPlayer}`;
+                roleBadge.textContent = role.toUpperCase();
+                roleBadge.className = `role-badge ${isImposter ? 'imposter' : 'crewmate'}`;
+                
+                // Handle imposter vs crewmate display
+                if (isImposter) {
+                    wordDisplay.textContent = "IMPOSTER";
+                    wordImage.style.display = "none";
+                    noImage.style.display = "flex";
+                    noImage.innerHTML = "<div>No word for imposters</div>";
+                    hintText.style.display = "none";
+                    imposterWarning.style.display = "block";
+                } else {
+                    wordDisplay.textContent = currentWord.toUpperCase();
+                    hintText.style.display = "block";
+                    imposterWarning.style.display = "none";
+                    
+                    // Show image for crewmate
+                    wordImage.src = category.images[currentWordIndex % category.images.length];
+                    wordImage.alt = currentWord;
+                    wordImage.style.display = "block";
+                    noImage.style.display = "none";
+                    
+                    // Add error handling for images
+                    wordImage.onerror = function() {
+                        this.style.display = "none";
+                        noImage.style.display = "flex";
+                        noImage.innerHTML = "<div>Image not available</div>";
+                    };
+                    
+                    hintText.innerHTML = `<strong>Your word:</strong> "${currentWord}"<br><br>Describe this word without saying it! Be creative with your clues.`;
+                }
+                
+                showScreen("reveal");
+            };
+
+            // NEXT PLAYER
+            window.nextPlayer = function() {
+                currentPlayer++;
+                updatePlayerList();
+                
+                if (currentPlayer > totalPlayers) {
+                    // End game
+                    clearInterval(timerInterval);
+                    const elapsed = Date.now() - gameStartTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    
+                    // Calculate score
+                    const baseScore = 100;
+                    const speedBonus = Math.max(0, 300 - Math.floor(elapsed / 1000));
+                    const imposterBonus = impostersCount * 50;
+                    const totalScore = baseScore + speedBonus + imposterBonus;
+                    
+                    gameScore += totalScore;
+                    gamesWon++;
+                    
+                    if (totalScore > bestScore) {
+                        bestScore = totalScore;
+                    }
+                    
+                    // Update displays
+                    gameScoreDisplay.textContent = `Score: ${gameScore}`;
+                    bestScoreDisplay.textContent = bestScore;
+                    winRateDisplay.textContent = Math.round((gamesWon / totalGames) * 100) + '%';
+                    
+                    saveStats();
+                    
+                    showScreen("menu");
+                    
+                    alert(`GAME COMPLETE!\n\nTime: ${minutes}:${seconds.toString().padStart(2, '0')}\nScore: +${totalScore} points\n\nDiscuss and vote for the imposters!`);
+                } else {
+                    showScreen("handover");
+                    updateHandoverText();
+                    startCountdown();
+                }
+            };
+
+            // RESET GAME
+            window.resetGame = function() {
+                if (confirm("Reset the game and return to menu?")) {
+                    clearInterval(countdownInterval);
+                    clearInterval(timerInterval);
+                    currentPlayer = 1;
+                    showScreen("menu");
+                }
+            };
+
+            // Keyboard shortcuts
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    resetGame();
+                }
+                if (e.key === " " || e.key === "Enter") {
+                    if (document.getElementById("handover").classList.contains("active")) {
+                        showReveal();
+                    }
+                }
+                if (e.key === "n" && document.getElementById("reveal").classList.contains("active")) {
+                    nextPlayer();
+                }
+                if (e.key === "t" && document.getElementById("menu").classList.contains("active")) {
+                    showTutorial();
+                }
+            });
+
+            // Initialize the game
+            initializeGame();
+        });
+    </script>
+</body>
+</html>
